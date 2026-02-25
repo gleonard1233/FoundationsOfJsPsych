@@ -1,0 +1,149 @@
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>My experiment</title>
+        <script src="https://unpkg.com/jspsych@8.2.3"></script>
+        <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@2.1.0"></script>
+        <script src="https://unpkg.com/@jspsych/plugin-image-keyboard-response@2.1.0"></script>
+        <script src="https://unpkg.com/@jspsych/plugin-preload@2.1.0"></script>
+        <link href="https://unpkg.com/jspsych@8.2.3/css/jspsych.css" rel="stylesheet" type="text/css" />
+    </head>
+    <body></body>
+    <script>
+
+        /* initialize jsPsych */
+        var jsPsych = initJsPsych({
+        on_finish: function() {
+            jsPsych.data.displayData();
+        }
+        });
+
+        /* create timeline */
+        var timeline = [];
+
+        /* define welcome message trial */
+        var welcome = {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: "Welcome to the lexical experiment. Press any key to begin."
+        };
+        timeline.push(welcome);
+
+        /* define instructions trial */
+        var instructions = {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: `
+            <p>In this experiment, a string of letters will appear in the center of the screen.</p>
+            <p>If the word is <strong>real</strong>, press the letter F on the keyboard as fast as you can.</p>
+            <p>If the word is <strong>fake</strong>, press the letter J as fast as you can.</p>
+            <p>Press any key to begin.</p>
+        `,
+        post_trial_gap: 2000
+        };
+        timeline.push(instructions);
+
+        /* define trial stimuli array for timeline variables */
+        var test_stimuli = [
+            //high frequency words
+        { stimulus: "water",  correct_response: 'f', lexical_type: 'high' },
+        { stimulus: "apple",  correct_response: 'f', lexical_type: 'high' },
+        { stimulus: "house",  correct_response: 'f', lexical_type: 'high' },
+        { stimulus: "light",  correct_response: 'f', lexical_type: 'high' },
+        { stimulus: "paper",  correct_response: 'f', lexical_type: 'high' },
+        { stimulus: "dog",  correct_response: 'f', lexical_type: 'high' },
+        { stimulus: "bird",  correct_response: 'f', lexical_type: 'high' },
+        { stimulus: "table",  correct_response: 'f', lexical_type: 'high' },
+            //low frequency words
+        { stimulus: "mantle",  correct_response: 'f', lexical_type: 'low' },
+        { stimulus: "plaque",  correct_response: 'f', lexical_type: 'low' },
+        { stimulus: "acorn",  correct_response: 'f', lexical_type: 'low' },
+        { stimulus: "marble",  correct_response: 'f', lexical_type: 'low' },
+        { stimulus: "beacon",  correct_response: 'f', lexical_type: 'low' },
+        { stimulus: "admit",  correct_response: 'f', lexical_type: 'low' },
+        { stimulus: "banjo",  correct_response: 'f', lexical_type: 'low' },
+        { stimulus: "cactus",  correct_response: 'f', lexical_type: 'low' },
+            //nonwords
+        { stimulus: "blarts",  correct_response: 'j', lexical_type: 'nonword' },
+        { stimulus: "flimy",  correct_response: 'j', lexical_type: 'nonword' },
+        { stimulus: "snarpa",  correct_response: 'j', lexical_type: 'nonword' },
+        { stimulus: "oglorp",  correct_response: 'j', lexical_type: 'nonword' },
+        { stimulus: "trank",  correct_response: 'j', lexical_type: 'nonword' },
+        { stimulus: "blumbet",  correct_response: 'j', lexical_type: 'nonword' },
+        { stimulus: "aatron",  correct_response: 'j', lexical_type: 'nonword' },
+        { stimulus: "pafods",  correct_response: 'j', lexical_type: 'nonword' },
+        { stimulus: "asdgfd",  correct_response: 'j', lexical_type: 'nonword' },
+        { stimulus: "posdfe",  correct_response: 'j', lexical_type: 'nonword' },
+        { stimulus: "clarpk",  correct_response: 'f', lexical_type: 'nonword' },
+        { stimulus: "wonzt",  correct_response: 'f', lexical_type: 'nonword' },
+        { stimulus: "ablond",  correct_response: 'f', lexical_type: 'nonword' },
+        { stimulus: "frousd",  correct_response: 'f', lexical_type: 'nonword' },
+        { stimulus: "powkde",  correct_response: 'f', lexical_type: 'nonword' },
+        { stimulus: "glofth",  correct_response: 'f', lexical_type: 'nonword' }
+        ];
+
+        /* define fixation and test trials */
+        var fixation = {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: '<div style="font-size:60px;">+</div>',
+        choices: "NO_KEYS",
+        trial_duration: function(){
+            return jsPsych.randomization.sampleWithoutReplacement([250, 500, 750, 1000, 1250, 1500, 1750, 2000], 1)[0];
+        },
+        data: {
+            task: 'fixation'
+        }
+        };
+
+        var test = {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: jsPsych.timelineVariable('stimulus'),
+        choices: ['f', 'j'],
+        data: {
+            task: 'response',
+            correct_response: jsPsych.timelineVariable('correct_response'),
+            lexical_type: jsPsych.timelineVariable('lexical_type')
+        },
+        on_finish: function(data){
+            data.correct = jsPsych.pluginAPI.compareKeys(data.response, data.correct_response);
+        }
+        };
+
+        /* define test procedure */
+        var test_procedure = {
+        timeline: [fixation, test],
+        timeline_variables: test_stimuli,
+        repetitions: 2,
+        randomize_order: true
+        };
+        timeline.push(test_procedure);
+
+        /* define debrief */
+        var debrief_block = {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: function() {
+
+            var trials = jsPsych.data.get().filter({task: 'response'});
+            var correct_trials = trials.filter({correct: true});
+            var accuracy = Math.round(correct_trials.count() / trials.count() * 100);
+            var rt = Math.round(correct_trials.select('rt').mean());
+
+            var high_rt = Math.round(correct_trials.filter({lexical_type: 'high'}).select('rt').mean());
+            var low_rt = Math.round(correct_trials.filter({lexical_type: 'low'}).select('rt').mean());
+            var nonword_rt = Math.round(correct_trials.filter({lexical_type: 'nonword'}).select('rt').mean()); 
+
+            return `<p>You responded correctly on ${accuracy}% of the trials.</p>
+            <p>Your average response time was ${rt}ms.</p>
+            <p>High frequency words reaction time: ${high_rt}ms</p>
+            <p>Low frequency words reaction time: ${low_rt}ms</p>
+            <p>Nonwords reaction time: ${nonword_rt}ms</p>
+            <p>Press any key to complete the experiment. Thank you!</p>`;
+
+
+        }
+        };
+        timeline.push(debrief_block);
+
+        /* start the experiment */
+        jsPsych.run(timeline);
+
+    </script>
+    </html>
